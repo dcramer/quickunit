@@ -1,3 +1,10 @@
+"""
+quickunit.utils
+~~~~~~~~~~~~~~~
+
+:copyright: 2012 DISQUS.
+:license: BSD
+"""
 import os
 import os.path
 

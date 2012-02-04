@@ -7,7 +7,7 @@ tests_require = [
 
 setup(
     name='nose-quickunit',
-    version='0.1.0',
+    version='0.2.0',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     description='A discovery plugin for Nose which relies on sane structure.',
@@ -15,6 +15,8 @@ setup(
     packages=find_packages(exclude=["tests"]),
     zip_safe=False,
     install_requires=[
+        'nose>=0.9',
+        'coverage>=3.5',
         'nose>=0.9',
         'simplejson',
     ],
