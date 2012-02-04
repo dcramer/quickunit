@@ -38,6 +38,20 @@ class QuickUnitPlugin(Plugin):
     score = 1000
     name = 'quickunit'
 
+    def _get_name_from_test(self, test):
+        test_method_name = test._testMethodName
+
+        # We need to determine the *actual* test path (as thats what nose gives us in wantMethod)
+        # for example, maybe a test was imported in foo.bar.tests, but originated as foo.bar.something.MyTest
+        # in this case, we'd need to identify that its *actually* foo.bar.something.MyTest to record the
+        # proper coverage
+        test_ = getattr(sys.modules[test.__module__], test.__class__.__name__)
+
+        test_name = '%s:%s.%s' % (test_.__module__, test_.__name__,
+                                                     test_method_name)
+
+        return test_name
+
     def _setup_coverage(self):
         instance = coverage(include=os.path.join(os.getcwd(), '*'))
         #instance.collector._trace_class = ExtendedTracer
@@ -65,6 +79,8 @@ class QuickUnitPlugin(Plugin):
 
         # diff is a mapping of filename->set(linenos)
         self.diff_data = defaultdict(set)
+
+        self.cov_data = defaultdict(lambda: defaultdict(set))
 
         # the root directory of our diff (this is basically cwd)
         self.root = None
@@ -166,19 +182,17 @@ class QuickUnitPlugin(Plugin):
 
         return False
 
-    def report(self, stream):
-        self.coverage.stop()
+    def startTest(self, test):
+        self.coverage.start()
 
-        if not self.verbosity:
-            return
-
-        self._report_test_coverage(stream)
-
-    def _report_test_coverage(self, stream):
+    def stopTest(self, test):
         cov = self.coverage
+        cov.stop()
 
-        cov_data = defaultdict(set)
-        diff_data = self.diff_data
+        # this must have been imported under a different name
+        # if self.discover and test_name not in self.pending_funcs:
+        #     self.logger.warning("Unable to determine origin for test: %s", test_name)
+        #     return
 
         # initialize reporter
         rep = Reporter(cov)
@@ -191,26 +205,50 @@ class QuickUnitPlugin(Plugin):
         for filename in cov.data.measured_files():
             linenos.extend(cov.data.executed_lines(filename).values())
 
+        # We're recording so fetch the test data
+        test_ = test.test
+        test_name = self._get_name_from_test(test_)
+
+        cov_data = self.cov_data[test_name]
         for cu in rep.code_units:
             # if sys.modules[test_.__module__].__file__ == cu.filename:
             #     continue
             filename = cu.name + '.py'
             linenos = cov.data.executed_lines(cu.filename)
 
-            cov_linenos = [l for l in linenos if l in diff_data[filename]]
+            diff = self.diff_data[filename]
+            cov_linenos = [l for l in linenos if l in diff]
             if cov_linenos:
                 cov_data[filename].update(cov_linenos)
+
+        cov.erase()
+
+    def report(self, stream):
+        if not self.verbosity:
+            return
+
+        self._report_test_coverage(stream)
+
+    def _report_test_coverage(self, stream):
+        diff_data = self.diff_data
+        cov_data = self.cov_data
 
         covered = 0
         total = 0
         missing = defaultdict(set)
-        for filename, linenos in diff_data.iteritems():
-            covered_linenos = cov_data[filename]
+        data = defaultdict(dict)
 
-            total += len(linenos)
-            covered += len(covered_linenos)
+        for test, coverage in cov_data.iteritems():
+            for filename, covered_linenos in coverage.iteritems():
+                linenos = diff_data[filename]
 
-            missing[filename] = linenos.difference(covered_linenos)
+                total += len(linenos)
+                covered += len(covered_linenos)
+
+                missing[filename] = linenos.difference(covered_linenos)
+
+                data[test][filename] = dict((k, 1) for k in covered_linenos)
+                data[test][filename].update(dict((k, 0) for k in missing[filename]))
 
         if self.report_file:
             self.report_file.write(simplejson.dumps({
@@ -218,18 +256,18 @@ class QuickUnitPlugin(Plugin):
                     'covered': covered,
                     'total': total,
                 },
-                'missing': dict((k, tuple(v)) for k, v in missing.iteritems() if v),
+                'tests': data,
             }))
             self.report_file.close()
-        elif total:
-            stream.writeln('Coverage Report')
-            stream.writeln('-' * 70)
-            stream.writeln('Coverage against diff is %.2f%% (%d / %d lines)' % (covered / float(total) * 100, covered, total))
-            if missing:
-                stream.writeln()
-                stream.writeln('%-35s   %s' % ('Filename', 'Missing Lines'))
-                stream.writeln('-' * 70)
-                for filename, linenos in sorted(missing.iteritems()):
-                    if not linenos:
-                        continue
-                    stream.writeln('%-35s   %s' % (filename, ', '.join(map(str, sorted(linenos)))))
+        # elif total:
+        #     stream.writeln('Coverage Report')
+        #     stream.writeln('-' * 70)
+        #     stream.writeln('Coverage against diff is %.2f%% (%d / %d lines)' % (covered / float(total) * 100, covered, total))
+        #     if missing:
+        #         stream.writeln()
+        #         stream.writeln('%-35s   %s' % ('Filename', 'Missing Lines'))
+        #         stream.writeln('-' * 70)
+        #         for filename, linenos in sorted(missing.iteritems()):
+        #             if not linenos:
+        #                 continue
+        #             stream.writeln('%-35s   %s' % (filename, ', '.join(map(str, sorted(linenos)))))
