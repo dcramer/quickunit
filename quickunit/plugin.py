@@ -98,7 +98,6 @@ class QuickUnitPlugin(Plugin):
     def begin(self):
         # If we're recording coverage we need to ensure it gets reset
         self.coverage = self._setup_coverage()
-        self.coverage.start()
 
         # XXX: this is pretty hacky
         proc = Popen(['git', 'merge-base', 'HEAD', self.parent], stdout=PIPE, stderr=STDOUT)
