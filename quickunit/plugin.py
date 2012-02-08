@@ -61,7 +61,7 @@ class QuickUnitPlugin(Plugin):
 
     def options(self, parser, env):
         Plugin.options(self, parser, env)
-        parser.add_option("--quickunit-prefix", dest="quickunit_prefix", default="tests/unit/")
+        parser.add_option("--quickunit-prefix", dest="quickunit_prefix", action="append")
         parser.add_option("--quickunit-output", dest="quickunit_output")
 
     def configure(self, options, config):
@@ -70,7 +70,7 @@ class QuickUnitPlugin(Plugin):
             return
 
         self.verbosity = options.verbosity
-        self.prefix = options.quickunit_prefix
+        self.prefixes = options.quickunit_prefix or ["tests/unit/"]
         self.parent = 'master'
 
         self.logger = logging.getLogger(__name__)
@@ -100,11 +100,17 @@ class QuickUnitPlugin(Plugin):
         self.coverage = self._setup_coverage()
 
         # XXX: this is pretty hacky
+        if self.verbosity > 1:
+            self.logger.info("Parsing parent commit..")
         proc = Popen(['git', 'merge-base', 'HEAD', self.parent], stdout=PIPE, stderr=STDOUT)
         self.parent_revision = proc.stdout.read().strip()
+        if self.verbosity > 1:
+            self.logger.info("Parent commit identified as %s", self.parent_revision)
 
         # pull in our diff
         # git diff `git merge-base HEAD master`
+        if self.verbosity > 1:
+            self.logger.info("Parsing diff..")
         proc = Popen(['git', 'diff', self.parent_revision], stdout=PIPE, stderr=STDOUT)
         diff = proc.stdout.read().strip()
 
@@ -152,7 +158,11 @@ class QuickUnitPlugin(Plugin):
             if is_new_file:
                 continue
 
-            self.pending_files.add(os.path.join(self.prefix, new_filename.rsplit('.', 1)[0]))
+            for prefix in self.prefixes:
+                self.pending_files.add(os.path.join(prefix, new_filename.rsplit('.', 1)[0]))
+
+        if self.verbosity > 1:
+            self.logger.info("Found %d changed file(s) and %d possible test paths..", len(diff), len(self.pending_files))
 
     def wantMethod(self, method):
         # only works with unittest compatible functions currently
@@ -169,15 +179,17 @@ class QuickUnitPlugin(Plugin):
             for lineno in xrange(startlineno, len(lines) + startlineno):
                 if lineno in diff_data:
                     # Remove it from the coverage data
-                    if filename.startswith(self.prefix):
-                        del self.diff_data[filename]
+                    for prefix in self.prefixes:
+                        if filename.startswith(prefix):
+                            del self.diff_data[filename]
                     return True
 
-        if filename.startswith(self.prefix):
-            del self.diff_data[filename]
-            for pending in self.pending_files:
-                if filename.startswith(pending):
-                    return True
+        for prefix in self.prefixes:
+            if filename.startswith(prefix):
+                del self.diff_data[filename]
+                for pending in self.pending_files:
+                    if filename.startswith(pending):
+                        return True
 
         return False
 
