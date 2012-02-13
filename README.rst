@@ -10,10 +10,13 @@ For example, say you're working in your branch called my-new-sexy-feature, which
     src/foo/biz.py
 
 Now if we run with the default options, ``nosetests --with-quickunit``, it will look for tests (by default) in
-the following base directories:::
+the following base directories::
 
     tests/foo/bar/*
     tests/foo/biz/*
+
+(It does this by analyzing the diff against `git merge-base HEAD master`, and determining which files you've changed
+are tests, including them, and which files containing test coverage in a parallel directory.)
 
 It will also report coverage based on the tests run, and optionally dump that to a JSON file.
 
