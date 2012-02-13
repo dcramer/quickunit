@@ -24,19 +24,19 @@ Config
 ------
 
 If you want to support multiple directories for searching (let's say you break up unittests from integration tests)
-you can do that as well:
+you can do that as well::
 
---quickunit-prefix=tests/unit/ --quickunit-prefix=tests/integration/
+    --quickunit-prefix=tests/unit/ --quickunit-prefix=tests/integration/
 
 Or, if you'd prefer, via ``setup.cfg``::
 
-quickunit-prefix = tests/unit
-                   tests/integration
+    quickunit-prefix = tests/unit
+                       tests/integration
 
 To output the coverage report as a JSON file, you can use simply use the ``quickunit-output`` option::
 
---quickunit-output=coverage.json
+    --quickunit-output=coverage.json
 
 Or, via ``setup.cfg``::
 
-quickunit-json = -
+    quickunit-json = -
