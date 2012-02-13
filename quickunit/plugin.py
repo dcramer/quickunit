@@ -75,7 +75,7 @@ class QuickUnitPlugin(Plugin):
             if len(self.prefixes) == 0:
                 self.prefixes = self.prefixes[0].split('\n')
         else:
-            self.prefixes = ["tests/unit/"]
+            self.prefixes = ["tests/"]
         self.parent = 'master'
 
         self.logger = logging.getLogger(__name__)
