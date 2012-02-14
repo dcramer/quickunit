@@ -72,7 +72,7 @@ class QuickUnitPlugin(Plugin):
         self.verbosity = options.verbosity
         if options.quickunit_prefix:
             self.prefixes = options.quickunit_prefix
-            if len(self.prefixes) == 0:
+            if len(self.prefixes) == 1:
                 self.prefixes = self.prefixes[0].split('\n')
         else:
             self.prefixes = ["tests/"]
