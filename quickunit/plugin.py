@@ -166,6 +166,8 @@ class QuickUnitPlugin(Plugin):
             for prefix in self.prefixes:
                 self.pending_files.add(os.path.join(prefix, new_filename.rsplit('.', 1)[0]))
 
+        self.tests_run = set()
+
         if self.verbosity > 1:
             self.logger.info("Found %d changed file(s) and %d possible test paths..", len(diff), len(self.pending_files))
 
@@ -178,6 +180,7 @@ class QuickUnitPlugin(Plugin):
         if self.root and filename.startswith(self.root):
             filename = filename[len(self.root):]
 
+        # check to see if this is a modified test
         diff_data = self.diff_data[filename]
         if diff_data:
             lines, startlineno = inspect.getsourcelines(method)
@@ -186,12 +189,12 @@ class QuickUnitPlugin(Plugin):
                     # Remove it from the coverage data
                     for prefix in self.prefixes:
                         if filename.startswith(prefix):
-                            del self.diff_data[filename]
+                            self.tests_run.add(filename)
                     return True
 
         for prefix in self.prefixes:
             if filename.startswith(prefix):
-                del self.diff_data[filename]
+                self.tests_run.add(filename)
                 for pending in self.pending_files:
                     if filename.startswith(pending):
                         return True
@@ -256,6 +259,8 @@ class QuickUnitPlugin(Plugin):
 
         for test, coverage in cov_data.iteritems():
             for filename, covered_linenos in coverage.iteritems():
+                if filename in self.tests_run:
+                    continue
                 linenos = diff_data[filename]
 
                 total += len(linenos)
