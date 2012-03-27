@@ -98,6 +98,10 @@ class QuickUnitPlugin(Plugin):
             assert pipe in ('stdout', 'stderr')
             self.report_file = getattr(sys, pipe)
         else:
+            path = os.path.dirname(report_output)
+            if not os.path.exists(path):
+                os.makedirs(path)
+
             self.report_file = open(report_output, 'w')
 
     def begin(self):
