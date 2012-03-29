@@ -311,6 +311,9 @@ class QuickUnitPlugin(Plugin):
 
                 missing[filename] = missing[filename].difference(covered_linenos)
 
+                if filename not in data[test]:
+                    data[test][filename] = {}
+
                 data[test][filename].update(dict((k, 1) for k in covered_linenos))
                 data[test][filename].update(dict((k, 0) for k in missing[filename]))
 
