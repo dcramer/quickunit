@@ -28,11 +28,11 @@ class QuickUnitPlugin(Plugin):
     """
     We find the diff with the parent revision for diff-tests with::
 
-        git diff origin/master
+        git diff `git merge-base HEAD master`
 
     If you run with the discover flag, it will attempt to discovery
     any tests that are required to run to test the changes in your current
-    branch, against those of origin/master.
+    branch, against those of the parent commit.
 
     """
     score = 1000
