@@ -3,7 +3,7 @@ quickunit.utils
 ~~~~~~~~~~~~~~~
 
 :copyright: 2012 DISQUS.
-:license: BSD
+:license: Apache 2.0
 """
 import os
 import os.path
