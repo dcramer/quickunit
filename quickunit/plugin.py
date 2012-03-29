@@ -85,7 +85,17 @@ class QuickUnitPlugin(Plugin):
         # diff is a mapping of filename->set(linenos)
         self.diff_data = defaultdict(set)
 
-        self.cov_data = defaultdict(lambda: defaultdict(set))
+        # coverate data which was discovered when a test was run
+        # test name -> {filename: {linenos}}
+        self.test_cov_data = defaultdict(lambda: defaultdict(set))
+
+        # coverage data which was discovered at time of module import
+        # imported module name -> {filename: {linenos}}
+        self.importtime_cov_data = defaultdict(lambda: defaultdict(set))
+
+        # maps a test name to a module
+        # test name -> module name
+        self.test_to_module_map = dict()
 
         # the root directory of our diff (this is basically cwd)
         self.root = None
@@ -205,17 +215,8 @@ class QuickUnitPlugin(Plugin):
 
         return False
 
-    def startTest(self, test):
-        self.coverage.start()
-
-    def stopTest(self, test):
+    def record_coverage_data(self, cov_data):
         cov = self.coverage
-        cov.stop()
-
-        # this must have been imported under a different name
-        # if self.discover and test_name not in self.pending_funcs:
-        #     self.logger.warning("Unable to determine origin for test: %s", test_name)
-        #     return
 
         # initialize reporter
         rep = Reporter(cov)
@@ -223,26 +224,48 @@ class QuickUnitPlugin(Plugin):
         # process all files
         rep.find_code_units(None, cov.config)
 
-        # Compute the standard deviation for all code executed from this test
-        linenos = []
-        for filename in cov.data.measured_files():
-            linenos.extend(cov.data.executed_lines(filename).values())
+        for cu in rep.code_units:
+            filename = cu.name + '.py'
+
+            if filename not in self.diff_data:
+                continue
+
+            linenos = cov.data.executed_lines(cu.filename).keys()
+
+            diff = self.diff_data[filename]
+            cov_linenos = [l for l in linenos if l in diff]
+
+            if cov_linenos:
+                cov_data[filename].update(cov_linenos)
+
+    def beforeImport(self, filename, module):
+        self.coverage.start()
+
+    def afterImport(self, filename, module):
+        cov = self.coverage
+        cov.stop()
+
+        cov_data = self.importtime_cov_data[module]
+        self.record_coverage_data(cov_data)
+
+        cov.erase()
+
+    def startTest(self, test):
+        self.coverage.start()
+
+    def stopTest(self, test):
+        cov = self.coverage
+        cov.stop()
 
         # We're recording so fetch the test data
         test_ = test.test
         test_name = self._get_name_from_test(test_)
 
-        cov_data = self.cov_data[test_name]
-        for cu in rep.code_units:
-            # if sys.modules[test_.__module__].__file__ == cu.filename:
-            #     continue
-            filename = cu.name + '.py'
-            linenos = cov.data.executed_lines(cu.filename)
+        self.test_to_module_map[test_name] = test_.__module__
 
-            diff = self.diff_data[filename]
-            cov_linenos = [l for l in linenos if l in diff]
-            if cov_linenos:
-                cov_data[filename].update(cov_linenos)
+        cov_data = self.test_cov_data[test_name]
+
+        self.record_coverage_data(cov_data)
 
         cov.erase()
 
@@ -254,26 +277,47 @@ class QuickUnitPlugin(Plugin):
 
     def _report_test_coverage(self, stream):
         diff_data = self.diff_data
-        cov_data = self.cov_data
+        test_cov_data = self.test_cov_data
+        importtime_cov_data = self.importtime_cov_data
+        module_map = self.test_to_module_map
 
         covered = 0
         total = 0
         missing = defaultdict(set)
         data = defaultdict(dict)
 
-        for test, coverage in cov_data.iteritems():
+        for test, coverage in test_cov_data.iteritems():
             for filename, covered_linenos in coverage.iteritems():
-                if filename in self.tests_run:
-                    continue
                 linenos = diff_data[filename]
 
-                total += len(linenos)
-                covered += len(covered_linenos)
+                # total += len(linenos)
+                # covered += len(covered_linenos)
 
                 missing[filename] = linenos.difference(covered_linenos)
 
                 data[test][filename] = dict((k, 1) for k in covered_linenos)
                 data[test][filename].update(dict((k, 0) for k in missing[filename]))
+
+            module = module_map.get(test)
+            if not module or module not in importtime_cov_data:
+                continue
+
+            # add in generic coverage data from time of import
+            for filename, covered_linenos in importtime_cov_data[module].iteritems():
+                # linenos = diff_data[filename]
+
+                # total += len(linenos)
+                # covered += len(covered_linenos)
+
+                missing[filename] = missing[filename].difference(covered_linenos)
+
+                data[test][filename].update(dict((k, 1) for k in covered_linenos))
+                data[test][filename].update(dict((k, 0) for k in missing[filename]))
+
+        for test, files in data.iteritems():
+            for filename, lines in files.iteritems():
+                total += len(lines)
+                covered += sum(1 for v in lines.itervalues() if v)
 
         if self.report_file:
             self.report_file.write(simplejson.dumps({
