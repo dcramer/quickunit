@@ -219,7 +219,10 @@ class QuickUnitPlugin(Plugin):
         cov = self.coverage
 
         # initialize reporter
-        rep = Reporter(cov)
+        try:
+            rep = Reporter(cov, cov.config)
+        except TypeError:
+            rep = Reporter(cov)
 
         # process all files
         rep.find_code_units(None, cov.config)
