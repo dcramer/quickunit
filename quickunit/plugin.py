@@ -106,13 +106,12 @@ class QuickUnitPlugin(Plugin):
         elif report_output.startswith('sys://'):
             pipe = report_output[6:]
             assert pipe in ('stdout', 'stderr')
-            self.report_file = getattr(sys, pipe)
+            self.report_file = report_output
         else:
             path = os.path.dirname(report_output)
             if not os.path.exists(path):
                 os.makedirs(path)
-
-            self.report_file = open(report_output, 'w')
+            self.report_file = report_output
 
     def begin(self):
         # If we're recording coverage we need to ensure it gets reset
@@ -326,14 +325,21 @@ class QuickUnitPlugin(Plugin):
                 covered += sum(1 for v in lines.itervalues() if v)
 
         if self.report_file:
-            self.report_file.write(simplejson.dumps({
+            if self.report_file.startswith('sys://'):
+                pipe = self.report_file[6:]
+                assert pipe in ('stdout', 'stderr')
+                report_file = getattr(sys, pipe)
+            else:
+                report_file = open(self.report_file, 'w')
+
+            report_file.write(simplejson.dumps({
                 'stats': {
                     'covered': covered,
                     'total': total,
                 },
                 'tests': data,
             }))
-            self.report_file.close()
+            report_file.close()
         # elif total:
         #     stream.writeln('Coverage Report')
         #     stream.writeln('-' * 70)
