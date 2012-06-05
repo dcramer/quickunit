@@ -80,6 +80,10 @@ class QuickUnitPlugin(Plugin):
 
         self.logger = logging.getLogger(__name__)
 
+        # pending files becomes a set of directorie pieces that represent
+        # the file locations changed in this diff
+        # for example, if /foo/bar/baz.py was changed, pending files would contain
+        # set([('foo', 'bar', 'baz')])
         self.pending_files = set()
 
         # diff is a mapping of filename->set(linenos)
@@ -198,19 +202,29 @@ class QuickUnitPlugin(Plugin):
         if diff_data:
             lines, startlineno = inspect.getsourcelines(method)
             for lineno in xrange(startlineno, len(lines) + startlineno):
-                if lineno in diff_data:
-                    # Remove it from the coverage data
-                    for prefix in self.prefixes:
-                        if filename.startswith(prefix):
-                            self.tests_run.add(filename)
-                    return True
+                if lineno not in diff_data:
+                    continue
+
+                # Remove it from the coverage data
+                for prefix in self.prefixes:
+                    if filename.startswith(prefix):
+                        self.tests_run.add(filename)
+
+                return True
+
+        filepath = os.path.join(filename.rsplit('.', 1)[0])
 
         for prefix in self.prefixes:
-            if filename.startswith(prefix):
-                self.tests_run.add(filename)
-                for pending in self.pending_files:
-                    if filename.startswith(pending):
-                        return True
+            if not filename.startswith(prefix):
+                continue
+
+            self.tests_run.add(filename)
+
+            for pending in self.pending_files:
+                # if the filename is /foo/bar/tests.py and pending is /foo/bar, run it
+                # if the filename is /foo/tests.py and pending is /foo, run it
+                if pending.startswith(filepath):
+                    return True
 
         return False
 
