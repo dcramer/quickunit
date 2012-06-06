@@ -212,7 +212,7 @@ class QuickUnitPlugin(Plugin):
 
                 return True
 
-        filepath = os.path.join(filename.rsplit('.', 1)[0])
+        filepath = os.path.join(filename.rsplit('/', 1)[0])
 
         for prefix in self.prefixes:
             if not filename.startswith(prefix):

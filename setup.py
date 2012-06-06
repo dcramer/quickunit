@@ -7,7 +7,7 @@ tests_require = [
 
 setup(
     name='nose-quickunit',
-    version='0.4.8',
+    version='0.4.9',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     description='A discovery plugin for Nose which relies on sane structure.',
