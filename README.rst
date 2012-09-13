@@ -18,7 +18,7 @@ the following base directories::
 (It does this by analyzing the diff against `git merge-base HEAD master`, and determining which files you've changed
 are tests, including them, and which files containing test coverage in a parallel directory.)
 
-It will also report coverage based on the tests run, and optionally dump that to a JSON file.
+.. note:: As of 0.5.0 nose-quickunit no longer reports test coverage
 
 Config
 ------
@@ -32,10 +32,6 @@ Or, if you'd prefer, via ``setup.cfg``::
 
     quickunit-prefix = tests/unit
                        tests/integration
-
-To output the coverage report as a JSON file, you can use simply use the ``quickunit-output`` option::
-
-    --quickunit-output=coverage.json
 
 Or, via ``setup.cfg``::
 

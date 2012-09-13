@@ -11,11 +11,8 @@ from __future__ import absolute_import
 import inspect
 import logging
 import os
-import simplejson
 import sys
 
-from coverage import coverage
-from coverage.report import Reporter
 from collections import defaultdict
 from nose.plugins.base import Plugin
 from subprocess import Popen, PIPE, STDOUT
@@ -52,17 +49,9 @@ class QuickUnitPlugin(Plugin):
 
         return test_name
 
-    def _setup_coverage(self):
-        instance = coverage(include=os.path.join(os.getcwd(), '*'))
-        #instance.collector._trace_class = ExtendedTracer
-        instance.use_cache(False)
-        instance.exclude('#pragma[: ]+[nN][oO] [cC][oO][vV][eE][rR]')
-        return instance
-
     def options(self, parser, env):
         Plugin.options(self, parser, env)
         parser.add_option("--quickunit-prefix", dest="quickunit_prefix", action="append")
-        parser.add_option("--quickunit-output", dest="quickunit_output")
 
     def configure(self, options, config):
         Plugin.configure(self, options, config)
@@ -89,38 +78,10 @@ class QuickUnitPlugin(Plugin):
         # diff is a mapping of filename->set(linenos)
         self.diff_data = defaultdict(set)
 
-        # coverate data which was discovered when a test was run
-        # test name -> {filename: {linenos}}
-        self.test_cov_data = defaultdict(lambda: defaultdict(set))
-
-        # coverage data which was discovered at time of module import
-        # imported module name -> {filename: {linenos}}
-        self.importtime_cov_data = defaultdict(lambda: defaultdict(set))
-
-        # maps a test name to a module
-        # test name -> module name
-        self.test_to_module_map = dict()
-
         # the root directory of our diff (this is basically cwd)
         self.root = None
 
-        report_output = options.quickunit_output
-        if not report_output or report_output == '-':
-            self.report_file = None
-        elif report_output.startswith('sys://'):
-            pipe = report_output[6:]
-            assert pipe in ('stdout', 'stderr')
-            self.report_file = report_output
-        else:
-            path = os.path.dirname(report_output)
-            if not os.path.exists(path):
-                os.makedirs(path)
-            self.report_file = report_output
-
     def begin(self):
-        # If we're recording coverage we need to ensure it gets reset
-        self.coverage = self._setup_coverage()
-
         # XXX: this is pretty hacky
         if self.verbosity > 1:
             self.logger.info("Parsing parent commit..")
@@ -175,8 +136,6 @@ class QuickUnitPlugin(Plugin):
                 linenos = filter(bool, (l['new_lineno'] for l in chunk if l['line']))
                 diff[new_filename].update(linenos)
 
-            # we dont care about missing coverage for new code, and there
-            # wont be any "existing coverage" to check for
             if is_new_file:
                 continue
 
@@ -227,142 +186,3 @@ class QuickUnitPlugin(Plugin):
                     return True
 
         return False
-
-    def record_coverage_data(self, cov_data):
-        cov = self.coverage
-
-        # initialize reporter
-        try:
-            rep = Reporter(cov, cov.config)
-        except TypeError:
-            rep = Reporter(cov)
-
-        # process all files
-        rep.find_code_units(None, cov.config)
-
-        for cu in rep.code_units:
-            filename = cu.name + '.py'
-
-            if filename not in self.diff_data:
-                continue
-
-            linenos = cov.data.executed_lines(cu.filename).keys()
-
-            diff = self.diff_data[filename]
-            cov_linenos = [l for l in linenos if l in diff]
-
-            if cov_linenos:
-                cov_data[filename].update(cov_linenos)
-
-    def beforeImport(self, filename, module):
-        self.coverage.start()
-
-    def afterImport(self, filename, module):
-        cov = self.coverage
-        cov.stop()
-
-        cov_data = self.importtime_cov_data[module]
-        self.record_coverage_data(cov_data)
-
-        cov.erase()
-
-    def startTest(self, test):
-        self.coverage.start()
-
-    def stopTest(self, test):
-        cov = self.coverage
-        cov.stop()
-
-        # We're recording so fetch the test data
-        test_ = test.test
-        test_name = self._get_name_from_test(test_)
-
-        self.test_to_module_map[test_name] = test_.__module__
-
-        cov_data = self.test_cov_data[test_name]
-
-        self.record_coverage_data(cov_data)
-
-        cov.erase()
-
-    def report(self, stream):
-        if not self.verbosity:
-            return
-
-        self._report_test_coverage(stream)
-
-    def _report_test_coverage(self, stream):
-        diff_data = self.diff_data
-        test_cov_data = self.test_cov_data
-        importtime_cov_data = self.importtime_cov_data
-        module_map = self.test_to_module_map
-
-        covered = 0
-        total = 0
-        missing = defaultdict(set)
-        data = defaultdict(dict)
-
-        for test, coverage in test_cov_data.iteritems():
-            for filename, covered_linenos in coverage.iteritems():
-                linenos = diff_data[filename]
-
-                # total += len(linenos)
-                # covered += len(covered_linenos)
-
-                missing[filename] = linenos.difference(covered_linenos)
-
-                data[test][filename] = dict((k, 1) for k in covered_linenos)
-                data[test][filename].update(dict((k, 0) for k in missing[filename]))
-
-            module = module_map.get(test)
-            if not module or module not in importtime_cov_data:
-                continue
-
-            # add in generic coverage data from time of import
-            for filename, covered_linenos in importtime_cov_data[module].iteritems():
-                # linenos = diff_data[filename]
-
-                # total += len(linenos)
-                # covered += len(covered_linenos)
-
-                missing[filename] = missing[filename].difference(covered_linenos)
-
-                if filename not in data[test]:
-                    data[test][filename] = {}
-
-                data[test][filename].update(dict((k, 1) for k in covered_linenos))
-                data[test][filename].update(dict((k, 0) for k in missing[filename]))
-
-        for test, files in data.iteritems():
-            for filename, lines in files.iteritems():
-                total += len(lines)
-                covered += sum(1 for v in lines.itervalues() if v)
-
-        if self.report_file:
-            if self.report_file.startswith('sys://'):
-                pipe = self.report_file[6:]
-                assert pipe in ('stdout', 'stderr')
-                report_file = getattr(sys, pipe)
-            else:
-                report_file = open(self.report_file, 'w')
-
-            report_file.write(simplejson.dumps({
-                'stats': {
-                    'covered': covered,
-                    'total': total,
-                },
-                'tests': data,
-            }))
-            report_file.close()
-        # elif total:
-        #     stream.writeln('Coverage Report')
-        #     stream.writeln('-' * 70)
-        #     stream.writeln('Coverage against diff is %.2f%% (%d / %d lines)' % (covered / float(total) * 100, covered, total))
-        #     if missing:
-        #         stream.writeln()
-        #         stream.writeln('%-35s   %s' % ('Filename', 'Missing Lines'))
-        #         stream.writeln('-' * 70)
-        #         for filename, linenos in sorted(missing.iteritems()):
-        #             if not linenos:
-        #                 continue
-        #             stream.writeln('%-35s   %s' % (filename, ', '.join(map(str, sorted(linenos)))))
