@@ -184,5 +184,7 @@ class QuickUnitPlugin(Plugin):
                 # if the filename is /foo/tests.py and pending is /foo, run it
                 if pending.startswith(filepath):
                     return True
+                elif filepath.startswith(pending):
+                    return True
 
         return False
