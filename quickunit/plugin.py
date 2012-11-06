@@ -21,6 +21,54 @@ from quickunit.diff import DiffParser
 from quickunit.utils import is_py_script
 
 
+class FileAcceptedCache(dict):
+    def __init__(self, prefixes, pending_files, diff_data, root=None):
+        self.prefixes = prefixes
+        self.pending_files = pending_files
+        self.diff_data = diff_data
+        self.root = root
+        dict.__init__(self)
+
+    def __missing__(self, filename):
+        self[filename] = self.check(filename)
+        return self[filename]
+
+    def check(self, filename):
+        # check if this test was modified (e.g. added/changed)
+        if self.root and filename.startswith(self.root):
+            filename = filename[len(self.root):]
+
+        # # check to see if this is a modified test
+        # diff_data = self.diff_data[filename]
+        # if diff_data:
+        #     lines, startlineno = inspect.getsourcelines(method)
+        #     for lineno in xrange(startlineno, len(lines) + startlineno):
+        #         if lineno not in diff_data:
+        #             continue
+
+        #         return True
+
+        # if the filename is actually the changed file
+        if filename in self.diff_data:
+            return True
+
+        filepath = os.path.join(filename.rsplit('/', 1)[0])
+
+        for prefix in self.prefixes:
+            if not filename.startswith(prefix):
+                continue
+
+            for pending in self.pending_files:
+                # if the filename is /foo/bar/tests.py and pending is /foo/bar, run it
+                # if the filename is /foo/tests.py and pending is /foo, run it
+                if pending.startswith(filepath):
+                    return True
+                elif filepath.startswith(pending):
+                    return True
+
+        return False
+
+
 class QuickUnitPlugin(Plugin):
     """
     We find the diff with the parent revision for diff-tests with::
@@ -78,8 +126,8 @@ class QuickUnitPlugin(Plugin):
         # diff is a mapping of filename->set(linenos)
         self.diff_data = defaultdict(set)
 
-        # the root directory of our diff (this is basically cwd)
-        self.root = None
+        # store a list of filenames that should be accepted
+        self.file_cache = FileAcceptedCache(self.prefixes, self.pending_files, self.diff_data)
 
     def begin(self):
         # XXX: this is pretty hacky
@@ -122,8 +170,8 @@ class QuickUnitPlugin(Plugin):
 
             filename = filename[2:]
 
-            if self.root is None:
-                self.root = os.path.abspath(filename)[:-len(filename)]
+            if self.file_cache.root is None:
+                self.file_cache.root = os.path.abspath(filename)[:-len(filename)]
 
             # Ignore non python files
             if not is_py_script(filename):
@@ -142,8 +190,6 @@ class QuickUnitPlugin(Plugin):
             for prefix in self.prefixes:
                 self.pending_files.add(os.path.join(prefix, new_filename.rsplit('.', 1)[0]))
 
-        self.tests_run = set()
-
         if self.verbosity > 1:
             self.logger.info("Found %d changed file(s) and %d possible test paths..", len(diff), len(self.pending_files))
 
@@ -153,38 +199,5 @@ class QuickUnitPlugin(Plugin):
 
         # check if this test was modified (e.g. added/changed)
         filename = inspect.getfile(method)
-        if self.root and filename.startswith(self.root):
-            filename = filename[len(self.root):]
 
-        # check to see if this is a modified test
-        diff_data = self.diff_data[filename]
-        if diff_data:
-            lines, startlineno = inspect.getsourcelines(method)
-            for lineno in xrange(startlineno, len(lines) + startlineno):
-                if lineno not in diff_data:
-                    continue
-
-                # Remove it from the coverage data
-                for prefix in self.prefixes:
-                    if filename.startswith(prefix):
-                        self.tests_run.add(filename)
-
-                return True
-
-        filepath = os.path.join(filename.rsplit('/', 1)[0])
-
-        for prefix in self.prefixes:
-            if not filename.startswith(prefix):
-                continue
-
-            self.tests_run.add(filename)
-
-            for pending in self.pending_files:
-                # if the filename is /foo/bar/tests.py and pending is /foo/bar, run it
-                # if the filename is /foo/tests.py and pending is /foo, run it
-                if pending.startswith(filepath):
-                    return True
-                elif filepath.startswith(pending):
-                    return True
-
-        return False
+        return self.file_cache[filename]
