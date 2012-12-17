@@ -11,7 +11,9 @@ import os.path
 
 def is_py_script(filename):
     "Returns True if a file is a python executable."
-    if filename.endswith(".py") and os.path.exists(filename):
+    if not os.path.exists(filename) and os.path.isfile(filename):
+        return False
+    elif filename.endswith(".py"):
         return True
     elif not os.access(filename, os.X_OK):
         return False
