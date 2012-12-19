@@ -21,6 +21,16 @@ from quickunit.diff import DiffParser
 from quickunit.utils import is_py_script
 
 
+def clean_bytecode_extension(filename):
+    """
+    Replaces Python bytecode extensions (``.pyc``) with their source extension.
+    """
+    path, extension = os.path.splitext(filename)
+    if extension == '.pyc':
+        filename = '%s.py' % path
+    return filename
+
+
 class FileAcceptedCache(dict):
     def __init__(self, prefixes, pending_files, diff_data, root=None):
         self.prefixes = prefixes
@@ -34,6 +44,8 @@ class FileAcceptedCache(dict):
         return self[filename]
 
     def check(self, filename):
+        filename = clean_bytecode_extension(filename)
+
         # check if this test was modified (e.g. added/changed)
         if self.root and filename.startswith(self.root):
             filename = filename[len(self.root):]
