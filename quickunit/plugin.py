@@ -83,6 +83,9 @@ class QuickUnitPlugin(Plugin):
             self.file_checker.add(c_file.filename)
         self.file_checker.compile()
 
+    def wantFile(self, filename):
+        return self.file_checker[filename]
+
     def wantMethod(self, method):
         # only works with unittest compatible functions currently
         method = getattr(sys.modules[method.im_class.__module__], method.im_class.__name__)
