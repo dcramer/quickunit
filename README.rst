@@ -37,6 +37,7 @@ If you want to support multiple directories for searching (let's say you break u
 you can do that as well:
 
 ::
+
     --quickunit-rule=tests/{path}/test_{filename} --quickunit-rule=tests/{path}/{basename}/tests.py
 
 Or, if you'd prefer, via ``setup.cfg``:
