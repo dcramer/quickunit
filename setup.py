@@ -8,12 +8,12 @@ tests_require = [
 ]
 
 setup(
-    name='nose-quickunit',
+    name='quickunit',
     version='0.5.4',
     author='David Cramer',
     author_email='dcramer@gmail.com',
     description='A discovery plugin for Nose which relies on sane structure.',
-    url='http://github.com/dcramer/nose-quickunit',
+    url='http://github.com/dcramer/quickunit',
     packages=find_packages(exclude=["tests"]),
     zip_safe=False,
     install_requires=[

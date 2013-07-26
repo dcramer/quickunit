@@ -1,5 +1,5 @@
-nose-quickunit
-==============
+quickunit
+=========
 
 Given standard test setup, will determine which tests need to run against a given diff.
 

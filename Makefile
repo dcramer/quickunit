@@ -1,6 +1,6 @@
 develop:
 	pip install -e . --use-mirrors
-	pip install -q "file://`pwd`#egg=nose-quickunit[tests]" --use-mirrors
+	pip install -q "file://`pwd`#egg=quickunit[tests]" --use-mirrors
 
 test: develop
 	nosetests
