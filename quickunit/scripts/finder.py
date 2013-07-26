@@ -2,26 +2,32 @@ import fnmatch
 import os
 
 from quickunit.filechecker import FileChecker
-from quickunit.vcs import git
+from quickunit.vcs import get_vcs
 
 
 def main(test_paths, pattern='*', root=None, parent_branch=None, rules=None):
     # store a list of filenames that should be accepted
     file_checker = FileChecker(rules, root)
 
-    file_list = git.parse_commit(parent=parent_branch)
+    if root is None:
+        root = ''
+
+    os.chdir(root)
+
+    vcs = get_vcs(root)
+
+    file_list = vcs.parse_commit(parent=parent_branch)
+    if not file_list:
+        return ''
+
     for c_file in file_list:
         file_checker.add(c_file.filename)
-    file_checker.compile()
-
-    if root:
-        os.chdir(root)
 
     matches = []
     for path in test_paths:
-        for root, dirnames, filenames in os.walk(path):
+        for f_root, _, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, pattern):
-                filepath = os.path.join(root, filename)
+                filepath = os.path.join(f_root, filename)
                 if file_checker[filepath] is not False:
                     matches.append(filepath)
 
