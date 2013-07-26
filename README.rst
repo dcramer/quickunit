@@ -39,3 +39,19 @@ Or, if you'd prefer, via ``setup.cfg``::
     quickunit-prefix = tests/unit
                        tests/integration
     quickunit-rule = tests/{path}/test_{filename}
+
+Rules
+-----
+
+Rules are a combination of simple formatting a regular expressions.
+
+The following formatted variables are available within a rule:
+
+{path}
+  The base path of the filename (e.g. foo/bar)
+{filename}
+  The filename excluding the path (e.g. baz.py)
+{basename}
+  The filename excluding the extension (e.g. baz)
+
+A rule is first formatted (using ``.format(params)``) and then compiled into a regular expression on top of each changed file.

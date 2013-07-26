@@ -54,9 +54,13 @@ class FileChecker(dict):
                 path, filename = filepath.rsplit('/', 1)
             except ValueError:
                 path, filename = '', filepath
+
+            basename = filename.rsplit('.', 1)[0]
+
             params = {
                 'path': path,
                 'filename': filename,
+                'basename': basename,
             }
             for rule in self.rules:
                 rules.append(re.compile(rule.format(**params)))
