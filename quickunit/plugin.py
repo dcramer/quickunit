@@ -19,16 +19,6 @@ from quickunit.vcs import git
 
 
 class QuickUnitPlugin(Plugin):
-    """
-    We find the diff with the parent revision for diff-tests with::
-
-        git diff `git merge-base HEAD master`
-
-    If you run with the discover flag, it will attempt to discovery
-    any tests that are required to run to test the changes in your current
-    branch, against those of the parent commit.
-
-    """
     score = 1000
     name = 'quickunit'
 
@@ -59,9 +49,7 @@ class QuickUnitPlugin(Plugin):
 
         rules = options.quickunit_rule
         # handle setup.cfg strangeness
-        if not rules:
-            rules = ['tests/{path}/test_{filename}']
-        elif len(rules) == 1:
+        if len(rules) == 1:
             rules = rules[0].split('\n')
 
         root = options.quickunit_root

@@ -5,8 +5,10 @@ from quickunit.utils import clean_bytecode_extension
 
 
 class FileChecker(dict):
-    def __init__(self, rules, root=None):
-        self.rules = rules
+    def __init__(self, rules=None, root=None):
+        self.rules = rules or [
+            'tests/{path}/test_{filename}',
+        ]
         self.changed_files = set()
         self.root = root
         self.compiled = False
