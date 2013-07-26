@@ -3,7 +3,9 @@ nose-quickunit
 
 Given standard test setup, will determine which tests need to run against a given diff.
 
-For example, say you're working in your branch called my-new-sexy-feature, which modifies the following files::
+For example, say you're working in your branch called my-new-sexy-feature, which modifies the following files:
+
+::
 
     src/foo/bar/__init__.py
     src/foo/bar/baz.py
@@ -11,14 +13,18 @@ For example, say you're working in your branch called my-new-sexy-feature, which
 
 If you're using a traditional test layout, we'll automatically add the following rule for you:
 
-	tests/{path}/test_{filename}
+::
+
+    tests/{path}/test_{filename}
 
 Otherwise you can add rules using regular expression syntax in combination with the path and filename formatters.
 
 Now if we run with the default options, ``nosetests --with-quickunit``, it will look for tests (by default) in
-the following base directories::
+the following base directories:
 
-	tests/src/foo/bar/test_baz.py
+::
+
+    tests/src/foo/bar/test_baz.py
     tests/src/foo/test_biz.py
 
 (It does this by analyzing the diff against master, and determining which files you've changed
@@ -28,11 +34,15 @@ Config
 ------
 
 If you want to support multiple directories for searching (let's say you break up unittests from integration tests)
-you can do that as well::
+you can do that as well:
+
+::
 
     --quickunit-prefix=tests/unit/ --quickunit-prefix=tests/integration/
 
-Or, if you'd prefer, via ``setup.cfg``::
+Or, if you'd prefer, via ``setup.cfg``:
+
+::
 
     quickunit-prefix = tests/unit
                        tests/integration
