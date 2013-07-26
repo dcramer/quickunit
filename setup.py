@@ -20,9 +20,12 @@ setup(
         'nose>=0.9',
     ],
     entry_points={
-       'nose.plugins.0.10': [
+        'nose.plugins.0.10': [
             'quickunit = quickunit.plugin:QuickUnitPlugin'
-        ]
+        ],
+        'console_scripts': [
+            'quickunit-finder = quickunit.scripts.finder:main',
+        ],
     },
     license='Apache License 2.0',
     tests_require=tests_require,

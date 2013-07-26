@@ -5,12 +5,14 @@ from quickunit.filechecker import FileChecker
 from quickunit.vcs import get_vcs
 
 
-def main(test_paths, pattern='*', root=None, parent_branch=None, rules=None):
+def run(test_paths, pattern='*', root=None, parent_branch=None, rules=None):
     # store a list of filenames that should be accepted
     file_checker = FileChecker(rules, root)
 
     if root is None:
         root = ''
+
+    root = os.path.realpath(root)
 
     os.chdir(root)
 
@@ -34,7 +36,7 @@ def main(test_paths, pattern='*', root=None, parent_branch=None, rules=None):
     return '\n'.join(matches)
 
 
-if __name__ == '__main__':
+def main():
     import pkg_resources
 
     from optparse import OptionParser
@@ -51,4 +53,8 @@ if __name__ == '__main__':
     if not args:
         parser.error("You must specify test directories")
 
-    print main(args, **vars(opts))
+    print run(args, **vars(opts))
+
+
+if __name__ == '__main__':
+    main()
