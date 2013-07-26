@@ -18,13 +18,11 @@ Otherwise you can add rules using regular expression syntax in combination with 
 Now if we run with the default options, ``nosetests --with-quickunit``, it will look for tests (by default) in
 the following base directories::
 
-    tests/src/foo/bar/*
-    tests/src/foo/biz/*
+	tests/src/foo/bar/test_baz.py
+    tests/src/foo/test_biz.py
 
-(It does this by analyzing the diff against `git merge-base HEAD master`, and determining which files you've changed
+(It does this by analyzing the diff against master, and determining which files you've changed
 are tests, including them, and which files containing test coverage in a parallel directory.)
-
-.. note:: As of 0.5.0 nose-quickunit no longer reports test coverage
 
 Config
 ------
