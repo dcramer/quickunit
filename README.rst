@@ -9,6 +9,12 @@ For example, say you're working in your branch called my-new-sexy-feature, which
     src/foo/bar/baz.py
     src/foo/biz.py
 
+If you're using a traditional test layout, we'll automatically add the following rule for you:
+
+	tests/{path}/test_{filename}
+
+Otherwise you can add rules using regular expression syntax in combination with the path and filename formatters.
+
 Now if we run with the default options, ``nosetests --with-quickunit``, it will look for tests (by default) in
 the following base directories::
 
@@ -32,7 +38,4 @@ Or, if you'd prefer, via ``setup.cfg``::
 
     quickunit-prefix = tests/unit
                        tests/integration
-
-Or, via ``setup.cfg``::
-
-    quickunit-json = -
+    quickunit-rule = tests/{path}/test_{filename}

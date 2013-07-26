@@ -3,6 +3,8 @@
 from setuptools import setup, find_packages
 
 tests_require = [
+    'nose',
+    'unittest2',
 ]
 
 setup(
@@ -16,9 +18,6 @@ setup(
     zip_safe=False,
     install_requires=[
         'nose>=0.9',
-        'coverage>=3.5',
-        'nose>=0.9',
-        'simplejson',
     ],
     entry_points={
        'nose.plugins.0.10': [
@@ -27,7 +26,7 @@ setup(
     },
     license='Apache License 2.0',
     tests_require=tests_require,
-    extras_require={'test': tests_require},
+    extras_require={'tests': tests_require},
     include_package_data=True,
     classifiers=[
         'Intended Audience :: Developers',

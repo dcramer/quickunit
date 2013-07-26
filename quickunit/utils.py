@@ -24,3 +24,13 @@ def is_py_script(filename):
             return "#!" in first_line and "python" in first_line
         except StopIteration:
             return False
+
+
+def clean_bytecode_extension(filename):
+    """
+    Replaces Python bytecode extensions (``.pyc``) with their source extension.
+    """
+    path, extension = os.path.splitext(filename)
+    if extension == '.pyc':
+        filename = '%s.py' % path
+    return filename
