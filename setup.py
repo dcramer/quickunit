@@ -26,7 +26,9 @@ setup(
     },
     license='Apache License 2.0',
     tests_require=tests_require,
-    extras_require={'tests': tests_require},
+    extras_require={
+        'tests': tests_require,
+    },
     include_package_data=True,
     classifiers=[
         'Intended Audience :: Developers',
