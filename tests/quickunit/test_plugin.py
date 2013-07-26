@@ -19,6 +19,6 @@ class FileCheckerTest(TestCase):
             file_checker.add(filepath)
         file_checker.compile()
 
-        assert file_checker['tests/foo/bar/test_baz.py']
-        assert file_checker['tests/foo/bar/test_biz.py']
-        assert not file_checker['tests/foo/baz/test_bar.py']
+        self.assertIsNone(file_checker['tests/foo/bar/test_baz.py'])
+        self.assertIsNone(file_checker['tests/foo/bar/test_biz.py'])
+        self.assertFalse(file_checker['tests/foo/baz/test_bar.py'])

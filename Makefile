@@ -4,3 +4,6 @@ develop:
 
 test: develop
 	nosetests
+
+qtest: develop
+	nosetests --with-quickunit

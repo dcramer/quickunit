@@ -50,7 +50,10 @@ class FileChecker(dict):
 
         rules = []
         for filepath in self.changed_files:
-            path, filename = filepath.rsplit('/', 1)
+            try:
+                path, filename = filepath.rsplit('/', 1)
+            except ValueError:
+                path, filename = '', filepath
             params = {
                 'path': path,
                 'filename': filename,
@@ -73,11 +76,11 @@ class FileChecker(dict):
 
         # if the filepath is actually the changed file
         if filepath in self.changed_files:
-            return True
+            return None
 
         for rule in self.rules:
             if rule.search(filepath):
-                return True
+                return None
 
         return False
 
@@ -121,7 +124,7 @@ class QuickUnitPlugin(Plugin):
         if not self.enabled:
             return
 
-        rules = options.quickunit_rules
+        rules = options.quickunit_rule
         # handle setup.cfg strangeness
         if not rules:
             rules = ['tests/{path}/test_{filename}']
@@ -139,7 +142,7 @@ class QuickUnitPlugin(Plugin):
         self.file_checker = FileChecker(rules, root)
 
     def parse_git_commit(self):
-        parent_branch = self.quickunit_parent_branch or 'master'
+        parent_branch = self.parent_branch or 'master'
         proc = Popen(['git', 'merge-base', 'HEAD', parent_branch], stdout=PIPE, stderr=STDOUT)
 
         parent_revision = proc.stdout.read().strip()
@@ -189,7 +192,10 @@ class QuickUnitPlugin(Plugin):
         # only works with unittest compatible functions currently
         method = getattr(sys.modules[method.im_class.__module__], method.im_class.__name__)
 
-        # check if this test was modified (e.g. added/changed)
-        filename = inspect.getfile(method)
+        try:
+            # check if this test was modified (e.g. added/changed)
+            filename = inspect.getfile(method)
+        except TypeError:
+            return None
 
         return self.file_checker[filename]
