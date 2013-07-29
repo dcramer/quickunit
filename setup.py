@@ -16,9 +16,6 @@ setup(
     url='http://github.com/dcramer/quickunit',
     packages=find_packages(exclude=["tests"]),
     zip_safe=False,
-    install_requires=[
-        'nose>=0.9',
-    ],
     entry_points={
         'nose.plugins.0.10': [
             'quickunit = quickunit.plugin:QuickUnitPlugin'
